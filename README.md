@@ -7,7 +7,7 @@ A Python-based voice assistant with a graphical user interface. Jarvis listens f
 
 ---
 
-## 🖼️ GUI Overview
+## 🖼️ CLI Overview
 
 ![Jarvis CLI](Jarvis_CLI.png)
 
