@@ -1,10 +1,28 @@
-# Jarvis - A Python Voice Assistant
+```
+        __                 _
+      / /___ _______   __(_)____
+ __  / / __ `/ ___/ | / / / ___/
+/ /_/ / /_/ / /   | |/ / (__  )
+\____/\__,_/_/    |___/_/____/
+
+```
+
+### A Python Voice Assistant with a GUI
+
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Python-based voice assistant with a graphical user interface. Jarvis listens for your voice commands to perform various tasks on your desktop, from launching applications to searching the web.
 
-![Jarvis GUI](Jarvis_CLI.png)
+---
 
-## Features
+## 🖼️ GUI Overview
+
+![Jarvis GUI](gui_screenshot.png)
+
+---
+
+## ✨ Features
 
 - **Voice-Activated:** Control the assistant entirely with your voice, starting with the wake word "Jarvis".
 - **GUI Interface:** A clean, modern interface with an animated orb provides visual feedback on the assistant's state (Idle, Listening, Speaking).
@@ -15,19 +33,9 @@ A Python-based voice assistant with a graphical user interface. Jarvis listens f
 - **System Commands:** Control media (play/pause), get the current time, and shut down the assistant.
 - **Modular & Extensible:** Built with a clear separation between the GUI, STT/TTS engines, and command handling, making it easy to add new abilities.
 
-## Requirements
+---
 
-The project relies on the following major Python libraries:
-
-- `vosk` for speech-to-text
-- `pyttsx3` for text-to-speech
-- `pygame` for the graphical user interface
-- `selenium` for browser automation
-- `pyautogui` for media key control
-
-All dependencies are listed in the `requirements.txt` file.
-
-## Installation & Setup
+## 🛠️ Installation & Setup
 
 Follow these steps to get Jarvis up and running on your local machine.
 
@@ -69,12 +77,14 @@ python main.py
 ```
 A GUI window with the animated orb will appear, and Jarvis will be ready to listen for the wake word.
 
-## Usage
+---
+
+## 🚀 Usage
 
 1.  **Wake Word:** Start any command by saying "**Jarvis**". The orb in the GUI will change color to indicate it's listening.
 2.  **Speak Your Command:** After saying the wake word, speak your command clearly. You can either say the wake word and command together (e.g., "Jarvis, open notepad") or say the wake word, pause, and then say the command.
 
-### Example Commands
+#### Example Commands
 - "Jarvis, open notepad"
 - "Jarvis, open youtube"
 - "Jarvis, what time is it?"
