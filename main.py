@@ -13,6 +13,7 @@ Controls:
 import sys
 import time
 import threading
+import queue
 from pathlib import Path
 
 # Add project root to path
@@ -22,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Configuration
 # =============================================================================
 
-VOSK_MODEL_PATH = "models/vosk-model-small-en-us-0.15"
+VOSK_MODEL_PATH = "models/vosk-model-en-us-0.22-lgraph"
 WAKE_WORD = "jarvis"
 LISTEN_TIMEOUT = 5.0
 TTS_RATE = 180
@@ -33,16 +34,18 @@ TTS_VOLUME = 1.0
 # JarvisBot Class
 # =============================================================================
 
-class JarvisBot:
+class JarvisBot(threading.Thread):
     """
-    Main voice bot orchestrator.
-    Coordinates STT, TTS, commands, and actions.
-    Listens for a wake word and then a command.
+    The backend voice processing engine.
+    Runs in a separate thread and communicates with the GUI via a queue.
     """
 
-    def __init__(self):
+    def __init__(self, comm_queue: queue.Queue):
         """Initialize all components."""
-        print("[INIT] Initializing Jarvis...")
+        super().__init__(daemon=True)
+        print("[INIT] Initializing Jarvis Backend...")
+        
+        self.comm_queue = comm_queue
 
         # Voice I/O
         print("[INIT] Loading Speech-to-Text (Vosk)...")
@@ -79,26 +82,17 @@ class JarvisBot:
 
         # State
         self._running = False
-        print("[INIT] Jarvis initialized successfully!")
+        print("[INIT] Jarvis Backend initialized successfully!")
 
-    def start(self):
-        """Start the voice assistant's main command loop."""
+    def run(self):
+        """The main command loop of the bot."""
         self._running = True
         self.stt.start_listening()
-
-        print("\n[JARVIS] Online and ready!")
-        self.tts.speak("Jarvis online.")
-        print(f"[JARVIS] Listening for '{WAKE_WORD}' followed by a command...")
         
-        try:
-            self._command_loop()
-        except KeyboardInterrupt:
-            print("\n[JARVIS] Keyboard interrupt received.")
-        finally:
-            self.stop()
+        # Announce startup via queue
+        self._speak("Jarvis online.")
+        print(f"[JARVIS] Listening for '{WAKE_WORD}' followed by a command...")
 
-    def _command_loop(self):
-        """Main loop: listen for wake word and then a command."""
         listening_for_command = False
         
         for phrase in self.stt.phrases():
@@ -112,38 +106,40 @@ class JarvisBot:
                     command_text = phrase.lower().replace(WAKE_WORD.lower(), "").strip()
                     
                     if command_text:
-                        print(f"[JARVIS] Command heard with wake word: '{command_text}'")
                         self._process_command(command_text)
                     else:
-                        print(f"[JARVIS] Activated, listening for command...")
-                        self.tts.speak("Yes?")
+                        self.comm_queue.put({"state": "LISTENING"})
+                        self._speak("Yes?")
                         listening_for_command = True
             else:
-                command_text = phrase.lower()
-                print(f"[JARVIS] Command heard: '{command_text}'")
-                self._process_command(command_text)
+                self._process_command(phrase.lower())
                 listening_for_command = False
+                # Go back to idle state after processing
+                self.comm_queue.put({"state": "IDLE"})
+
+    def _speak(self, text: str):
+        """Send speak command to the queue and execute TTS."""
+        if not text:
+            return
+        self.comm_queue.put({"state": "SPEAKING", "text": text})
+        self.tts.speak(text) # Still run TTS from the backend thread
 
     def _process_command(self, command_text: str):
         """Parse and execute a command."""
         if not command_text:
+            self.comm_queue.put({"state": "IDLE"})
             return
 
         try:
-            # Use handler's stop command check
             if self.is_stop_command(command_text):
-                 print("[JARVIS] Stop command received.")
-                 self.tts.speak("Goodbye, sir.")
+                 self._speak("Goodbye, sir.")
                  self.stop()
                  return
 
             parsed = self.parser.parse(command_text)
             if not parsed:
-                print(f"[JARVIS] Could not parse: '{command_text}'")
-                self.tts.speak("I didn't understand that, sir.")
+                self._speak("I didn't understand that, sir.")
                 return
-
-            print(f"[JARVIS] Parsed: intent={parsed.intent}, target={parsed.target}, query={parsed.query}")
 
             kwargs = {}
             if parsed.target:
@@ -154,15 +150,13 @@ class JarvisBot:
             success, response = self.registry.dispatch_safe(parsed.intent, **kwargs)
 
             if success:
-                print(f"[JARVIS] Response: {response}")
-                self.tts.speak_async(response)
+                self._speak(response)
             else:
-                print(f"[ERROR] Handler error: {response}")
-                self.tts.speak(f"I encountered an error. {response}")
+                self._speak(f"I encountered an error. {response}")
 
         except Exception as e:
             print(f"[ERROR] Processing error: {e}")
-            self.tts.speak("I encountered an error, sir.")
+            self._speak("I encountered an error, sir.")
 
     def stop(self):
         """Stop the voice assistant and clean up."""
@@ -181,7 +175,7 @@ class JarvisBot:
         except Exception as e:
             print(f"[CLEANUP] Browser close error: {e}")
 
-        print("[JARVIS] Shutdown complete. Goodbye!")
+        print("[JARVIS] Shutdown complete.")
 
 
 # =============================================================================
@@ -274,41 +268,34 @@ def check_requirements():
 
 
 def main():
-    """Main entry point."""
+    """Main entry point for the GUI-based voice assistant."""
+    # Check requirements first
     print_banner()
-
-    # Check requirements
     print("[STARTUP] Checking requirements...")
     errors = check_requirements()
-
     if errors:
         print("\n[ERROR] Missing requirements:\n")
         for error in errors:
             print(f"  {error}")
         print("\nPlease fix the above issues and try again.")
+        print("You may need to run: pip install -r requirements.txt")
         sys.exit(1)
-
     print("[STARTUP] All requirements OK!")
 
-    # Create and start bot
-    try:
-        bot = JarvisBot()
-        bot.start()
-    except FileNotFoundError as e:
-        print(f"\n[ERROR] File not found: {e}")
-        print("Make sure the Vosk model is downloaded and extracted.")
-        sys.exit(1)
-    except ImportError as e:
-        print(f"\n[ERROR] Import error: {e}")
-        print("Make sure all dependencies are installed: pip install -r requirements.txt")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        print("\n[JARVIS] Interrupted by user")
-    except Exception as e:
-        print(f"\n[ERROR] Unexpected error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    # Create a queue for communication between GUI and Bot
+    comm_queue = queue.Queue()
+
+    # Start the backend bot thread
+    bot = JarvisBot(comm_queue)
+    bot.start()
+
+    # Start the GUI
+    from gui import Visualizer
+    visualizer = Visualizer(comm_queue)
+    visualizer.run() # This will block until the GUI is closed
+
+    # After GUI closes, stop the bot thread
+    bot.stop()
 
 
 if __name__ == "__main__":
