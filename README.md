@@ -2,7 +2,7 @@
 
 A Python-based voice assistant with a graphical user interface. Jarvis listens for your voice commands to perform various tasks on your desktop, from launching applications to searching the web.
 
-![Jarvis GUI](gui_screenshot.png)
+![Jarvis GUI](Jarvis_CLI.png)
 
 ## Features
 
