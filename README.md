@@ -1,13 +1,4 @@
-```
-        __                 _
-      / /___ _______   __(_)____
- __  / / __ `/ ___/ | / / / ___/
-/ /_/ / /_/ / /   | |/ / (__  )
-\____/\__,_/_/    |___/_/____/
-
-```
-
-### A Python Voice Assistant with a GUI
+### A Python Voice AssistaNT CLI
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -18,7 +9,7 @@ A Python-based voice assistant with a graphical user interface. Jarvis listens f
 
 ## 🖼️ GUI Overview
 
-![Jarvis GUI](gui_screenshot.png)
+![Jarvis CLI](Jarvis_CLI.png)
 
 ---
 
