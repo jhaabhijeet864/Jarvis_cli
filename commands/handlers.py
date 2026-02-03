@@ -100,6 +100,42 @@ def _get_response(key: str, **kwargs) -> str:
 # =============================================================================
 
 @registry.register(
+    "generate_code",
+    "Generates a code snippet using an LLM",
+    ["write a python function", "code a sorting algorithm"]
+)
+def handle_generate_code(query: str = None, **kwargs) -> str:
+    """
+    Generates code using the LLM service.
+
+    Args:
+        query: The user's prompt for code generation.
+
+    Returns:
+        The generated code or an error message.
+    """
+    if not query:
+        return "What would you like me to code, sir?"
+
+    try:
+        from services.llm_api import CodeGenerator
+        import config
+
+        generator = CodeGenerator(api_key=config.GOOGLE_API_KEY)
+        generated_code = generator.generate_code(query)
+        # Instead of speaking the code, we return it for the GUI to display
+        return generated_code
+        
+    except ImportError:
+        return "The CodeGenerator service is not available, sir."
+    except ValueError as e:
+        # This catches the error from CodeGenerator if the API key is missing
+        return str(e)
+    except Exception as e:
+        return f"An unexpected error occurred while generating code: {e}"
+
+
+@registry.register(
     "open_app",
     "Opens a desktop application",
     ["open notepad", "open calculator", "launch chrome"]

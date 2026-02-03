@@ -9,3 +9,4 @@ selenium>=4.15.0
 webdriver-manager>=4.0.1
 colorama>=0.4.6
 pygame>=2.5.2
+google-generativeai>=0.4.0

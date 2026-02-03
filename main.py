@@ -147,11 +147,23 @@ class JarvisBot(threading.Thread):
             if parsed.query:
                 kwargs['query'] = parsed.query
 
+            # Dispatch to the appropriate handler
             success, response = self.registry.dispatch_safe(parsed.intent, **kwargs)
 
-            if success:
+            # Handle the response based on the intent
+            if parsed.intent == "generate_code":
+                if success:
+                    self._speak("Here is the code I generated for you.")
+                    # Send the code to the GUI for display
+                    self.comm_queue.put({"state": "DISPLAY_CODE", "code": response})
+                else:
+                    # If code generation failed, the response is an error message to speak
+                    self._speak(response)
+            elif success:
+                # For all other successful commands, just speak the response
                 self._speak(response)
             else:
+                # For all other failed commands, speak the error
                 self._speak(f"I encountered an error. {response}")
 
         except Exception as e:

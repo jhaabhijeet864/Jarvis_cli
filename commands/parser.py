@@ -38,6 +38,17 @@ class CommandParser:
         """Build and compile all command patterns."""
         patterns = []
 
+        # === Code Generation ===
+        # "write a python function...", "generate code for...", "code me a sorting algorithm"
+        patterns.append((
+            re.compile(
+                r"(?:write|code|generate)\s+(?:me\s+)?(?:a\s+)?(?:some\s+)?(.+)",
+                re.IGNORECASE
+            ),
+            "generate_code",
+            {"query": 1}
+        ))
+
         # === Open Applications ===
         # "open notepad", "open calculator", "open chrome", "launch notepad"
         patterns.append((
