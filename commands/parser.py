@@ -248,12 +248,24 @@ class CommandParser:
         if not text:
             return None
 
-        text = text.strip()
+        raw_text_original = text.strip()
+        
+        # Normalize text to handle common STT recognition errors before parsing
+        normalized_text = raw_text_original.lower()
+        replacements = {
+            "you tube": "youtube",
+            "not bad": "notepad",
+            "note bad": "notepad",
+            "know todd": "notepad",
+            "poke him on": "pokemon",
+        }
+        for old, new in replacements.items():
+            normalized_text = normalized_text.replace(old, new)
 
         for pattern, intent, group_mapping in self._patterns:
-            match = pattern.search(text)
+            match = pattern.search(normalized_text)
             if match:
-                cmd = ParsedCommand(intent=intent, raw_text=text)
+                cmd = ParsedCommand(intent=intent, raw_text=raw_text_original)
 
                 # Extract groups based on mapping
                 for field, group_num in group_mapping.items():

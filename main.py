@@ -36,14 +36,15 @@ TTS_VOLUME = 1.0
 class JarvisBot:
     """
     Main voice bot orchestrator.
-    Coordinates STT, TTS, commands, and actions from all three streams.
+    Coordinates STT, TTS, commands, and actions.
+    Listens for a wake word and then a command.
     """
 
     def __init__(self):
-        """Initialize all components from the three streams."""
+        """Initialize all components."""
         print("[INIT] Initializing Jarvis...")
 
-        # Stream 1: Voice I/O
+        # Voice I/O
         print("[INIT] Loading Speech-to-Text (Vosk)...")
         from core.stt import SpeechToText
         self.stt = SpeechToText(VOSK_MODEL_PATH)
@@ -52,11 +53,7 @@ class JarvisBot:
         from core.tts import TextToSpeech
         self.tts = TextToSpeech(rate=TTS_RATE, volume=TTS_VOLUME)
 
-        print("[INIT] Setting up hotkey listener (F4)...")
-        from core.hotkey import HotkeyListener
-        self.hotkey = HotkeyListener()
-
-        # Stream 2: Actions
+        # Actions
         print("[INIT] Initializing App Launcher...")
         from actions.apps import AppLauncher
         self.app_launcher = AppLauncher()
@@ -65,7 +62,7 @@ class JarvisBot:
         from actions.browser import BrowserController
         self.browser = BrowserController()
 
-        # Stream 3: Commands
+        # Commands
         print("[INIT] Initializing Command Handlers...")
         from commands.parser import CommandParser
         from commands.handlers import init_handlers, registry, is_stop_command
@@ -74,90 +71,73 @@ class JarvisBot:
         self.registry = registry
         self.is_stop_command = is_stop_command
 
-        # Connect handlers to action controllers
         init_handlers(
             app_launcher=self.app_launcher,
             browser=self.browser,
-            responses=None  # Uses built-in fallback responses
+            responses=None
         )
 
         # State
         self._running = False
-        self._processing = False
-        self._lock = threading.Lock()
-
         print("[INIT] Jarvis initialized successfully!")
 
     def start(self):
-        """Start the voice assistant."""
+        """Start the voice assistant's main command loop."""
         self._running = True
-
-        # Set up hotkey callback
-        self.hotkey.on_hotkey = self._on_hotkey_pressed
-        self.hotkey.start()
-
-        # Start speech recognition
         self.stt.start_listening()
 
-        # Announce startup
         print("\n[JARVIS] Online and ready!")
-        self.tts.speak("Jarvis online, sir. Ready for your commands.")
+        self.tts.speak("Jarvis online.")
+        print(f"[JARVIS] Listening for '{WAKE_WORD}' followed by a command...")
+        
+        try:
+            self._command_loop()
+        except KeyboardInterrupt:
+            print("\n[JARVIS] Keyboard interrupt received.")
+        finally:
+            self.stop()
 
-        # Main loop - listen for wake word
-        print(f"[JARVIS] Listening for wake word '{WAKE_WORD}' or F4 hotkey...")
-        self._main_loop()
-
-    def _main_loop(self):
-        """Main loop: listen for wake word or hotkey activation."""
-        while self._running:
-            try:
-                # Check for wake word (non-blocking with short timeout)
-                if self.stt.check_for_wake_word(WAKE_WORD, timeout=0.3):
-                    self._process_activation()
-
-                # Small sleep to prevent CPU spinning
-                time.sleep(0.1)
-
-            except KeyboardInterrupt:
-                print("\n[JARVIS] Keyboard interrupt received")
-                self.stop()
+    def _command_loop(self):
+        """Main loop: listen for wake word and then a command."""
+        listening_for_command = False
+        
+        for phrase in self.stt.phrases():
+            if not self._running:
                 break
-            except Exception as e:
-                print(f"[ERROR] Main loop error: {e}")
-                time.sleep(0.5)
 
-    def _on_hotkey_pressed(self):
-        """Callback when F4 hotkey is pressed."""
-        print("\n[HOTKEY] F4 pressed!")
-        self._process_activation()
+            print(f"[HEARD] '{phrase}'")
 
-    def _process_activation(self):
-        """Handle activation (wake word detected or hotkey pressed)."""
-        # Prevent concurrent processing
-        with self._lock:
-            if self._processing:
-                return
-            self._processing = True
+            if not listening_for_command:
+                if WAKE_WORD.lower() in phrase.lower():
+                    command_text = phrase.lower().replace(WAKE_WORD.lower(), "").strip()
+                    
+                    if command_text:
+                        print(f"[JARVIS] Command heard with wake word: '{command_text}'")
+                        self._process_command(command_text)
+                    else:
+                        print(f"[JARVIS] Activated, listening for command...")
+                        self.tts.speak("Yes?")
+                        listening_for_command = True
+            else:
+                command_text = phrase.lower()
+                print(f"[JARVIS] Command heard: '{command_text}'")
+                self._process_command(command_text)
+                listening_for_command = False
+
+    def _process_command(self, command_text: str):
+        """Parse and execute a command."""
+        if not command_text:
+            return
 
         try:
-            # Acknowledge activation
-            print("[JARVIS] Activated - listening for command...")
-            self.tts.speak("Yes sir?")
+            # Use handler's stop command check
+            if self.is_stop_command(command_text):
+                 print("[JARVIS] Stop command received.")
+                 self.tts.speak("Goodbye, sir.")
+                 self.stop()
+                 return
 
-            # Listen for command
-            print(f"[JARVIS] Listening for {LISTEN_TIMEOUT} seconds...")
-            command_text = self.stt.get_text(timeout=LISTEN_TIMEOUT)
-
-            if not command_text:
-                print("[JARVIS] No command heard (timeout)")
-                self.tts.speak("I didn't hear a command, sir.")
-                return
-
-            print(f"[JARVIS] Heard: '{command_text}'")
-
-            # Parse command
             parsed = self.parser.parse(command_text)
-
             if not parsed:
                 print(f"[JARVIS] Could not parse: '{command_text}'")
                 self.tts.speak("I didn't understand that, sir.")
@@ -165,54 +145,36 @@ class JarvisBot:
 
             print(f"[JARVIS] Parsed: intent={parsed.intent}, target={parsed.target}, query={parsed.query}")
 
-            # Build kwargs for dispatch
             kwargs = {}
             if parsed.target:
                 kwargs['target'] = parsed.target
             if parsed.query:
                 kwargs['query'] = parsed.query
 
-            # Dispatch to handler
             success, response = self.registry.dispatch_safe(parsed.intent, **kwargs)
 
             if success:
                 print(f"[JARVIS] Response: {response}")
-                self.tts.speak(response)
-
-                # Check for stop command
-                if self.is_stop_command(response):
-                    self.stop()
+                self.tts.speak_async(response)
             else:
                 print(f"[ERROR] Handler error: {response}")
-                self.tts.speak(f"I encountered an error, sir. {response}")
+                self.tts.speak(f"I encountered an error. {response}")
 
         except Exception as e:
             print(f"[ERROR] Processing error: {e}")
             self.tts.speak("I encountered an error, sir.")
 
-        finally:
-            self._processing = False
-
     def stop(self):
         """Stop the voice assistant and clean up."""
+        if not self._running:
+            return
+            
         print("\n[JARVIS] Shutting down...")
         self._running = False
-
-        # Stop hotkey listener
-        try:
-            self.hotkey.stop()
-            print("[CLEANUP] Hotkey listener stopped")
-        except Exception as e:
-            print(f"[CLEANUP] Hotkey stop error: {e}")
-
-        # Stop speech recognition
-        try:
-            self.stt.cleanup()
-            print("[CLEANUP] Speech recognition stopped")
-        except Exception as e:
-            print(f"[CLEANUP] STT cleanup error: {e}")
-
-        # Close browser if open
+        
+        self.stt.stop_listening()
+        print("[CLEANUP] Speech recognition stopped.")
+        
         try:
             self.browser.close()
             print("[CLEANUP] Browser closed")
@@ -242,7 +204,7 @@ def print_banner():
     ║                                                           ║
     ╠═══════════════════════════════════════════════════════════╣
     ║                                                           ║
-    ║   Wake Word: "Jarvis"     |     Hotkey: F4                ║
+    ║   Wake Word: "Jarvis"                                   ║
     ║                                                           ║
     ║   Commands:                                               ║
     ║     • "Open Notepad"      - Open applications             ║
