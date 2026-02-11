@@ -1,0 +1,43 @@
+2026-02-11 17:48:58,593 - main - INFO - Settings file not found. Creating with default settings: config\settings.json
+2026-02-11 17:48:58,593 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:48:58,601 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:49:49,804 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:49:49,806 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:49:50,757 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:49:50,758 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:49:52,809 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:49:52,810 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:49:52,810 - main - INFO - Setting 'tts.rate' updated to '200'.
+2026-02-11 17:49:52,810 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:49:52,812 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:49:52,830 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:49:52,831 - main - INFO - Setting 'tts.rate' updated to '180'.
+2026-02-11 17:49:52,831 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:52:59,422 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:52:59,438 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:55:01,806 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:55:01,806 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:55:03,189 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:55:03,189 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:55:04,415 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:55:04,415 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:55:04,415 - main - INFO - Setting 'tts.rate' updated to '200'.
+2026-02-11 17:55:04,416 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:55:04,417 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:55:04,431 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:55:04,432 - main - INFO - Setting 'tts.rate' updated to '180'.
+2026-02-11 17:55:04,432 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:56:55,657 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:56:55,660 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:56:57,700 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:56:57,700 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:56:57,738 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:56:57,738 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:56:57,738 - main - INFO - Setting 'tts.rate' updated to '200'.
+2026-02-11 17:56:57,738 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:56:57,740 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:56:57,742 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 17:56:57,742 - main - INFO - Setting 'tts.rate' updated to '180'.
+2026-02-11 17:56:57,742 - main - INFO - Saving settings to 'config\settings.json'.
+2026-02-11 17:57:06,296 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 17:57:06,299 - main - INFO - Settings loaded from 'config\settings.json'.

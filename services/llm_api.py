@@ -22,18 +22,15 @@ class CodeGenerator:
     Retrieves configuration from the centralized settings system.
     """
 
-    def __init__(self, settings: Settings = None):
+    def __init__():
         """
         Initializes the CodeGenerator using settings from the configuration system.
-
-        Args:
-            settings: Optional Settings instance. If None, creates a new one.
         
         Raises:
             ValueError: If the API key is missing or invalid.
         """
         # Load settings if not provided
-        self.settings = settings or Settings()
+        self.settings = Settings()
         
         # Get API key from config.py (sensitive data stays in config.py)
         api_key = config.GOOGLE_API_KEY

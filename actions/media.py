@@ -1,58 +1,57 @@
 from actions.browser import BrowserController
+import logging
+
+# Get loggers
+main_logger = logging.getLogger('main')
+error_logger = logging.getLogger('errors')
 
 class MediaController:
     def __init__(self, browser_controller: BrowserController):
         self.browser = browser_controller
+        main_logger.info("MediaController initialized.")
 
-    def _execute_video_script(self, script):
+    def _execute_video_script(self, script: str):
         """
         Executes a script on the current video element.
         """
+        if not self.browser or not self.browser.driver:
+            error_logger.warning("Browser not active. Cannot execute video script.")
+            return None
+        
         full_script = f"document.querySelector('video').{script};"
-        return self.browser.execute_script(full_script)
+        main_logger.debug(f"Executing video script: {full_script}")
+        try:
+            return self.browser.execute_script(full_script)
+        except Exception as e:
+            error_logger.exception(f"Error executing video script: {script}")
+            return None
 
     def play(self):
         """
         Plays the video.
         """
+        main_logger.info("Attempting to play media.")
         self._execute_video_script("play()")
 
     def pause(self):
         """
         Pauses the video.
         """
+        main_logger.info("Attempting to pause media.")
         self._execute_video_script("pause()")
 
     def toggle(self):
         """
         Toggles play/pause on the video.
         """
-        is_paused = self.browser.execute_script("return document.querySelector('video').paused;")
-        if is_paused:
-            self.play()
+        main_logger.info("Attempting to toggle media play/pause.")
+        is_paused = self._execute_video_script("return document.querySelector('video').paused;")
+        if is_paused is not None: # Ensure script execution was successful
+            if is_paused:
+                self.play()
+                main_logger.info("Media toggled to play.")
+            else:
+                self.pause()
+                main_logger.info("Media toggled to pause.")
         else:
-            self.pause()
-
-if __name__ == '__main__':
-    from actions.search import SearchController
-    import time
-
-    browser = BrowserController()
-    browser.start()
-    search = SearchController(browser)
-    search.search_and_play("never gonna give you up")
-    time.sleep(5) # Let the video load
-
-    media = MediaController(browser)
-
-    input("Video should be playing. Press Enter to pause...")
-    media.pause()
-
-    input("Video should be paused. Press Enter to play...")
-    media.play()
-
-    input("Video should be playing. Press Enter to toggle (pause)...")
-    media.toggle()
-
-    input("Video should be paused. Press Enter to close...")
-    browser.close()
+            error_logger.warning("Could not determine media state to toggle.")

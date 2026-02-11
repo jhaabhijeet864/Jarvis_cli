@@ -1,0 +1,9 @@
+2026-02-11 17:48:58,596 - errors - ERROR - Failed to save settings to 'config\settings.json'.
+Traceback (most recent call last):
+  File "D:\Coding\Jarvis_CLI\config\settings.py", line 81, in save
+    json.dump(self.settings, f, indent=4)
+              ^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'settings'
+2026-02-11 17:49:49,804 - errors - ERROR - Error loading 'config\settings.json': Expecting value: line 1 column 1 (char 0). Using default settings.
+2026-02-11 17:49:50,758 - errors - ERROR - Error loading 'config\settings.json': Expecting value: line 1 column 1 (char 0). Using default settings.
+2026-02-11 17:49:52,809 - errors - ERROR - Error loading 'config\settings.json': Expecting value: line 1 column 1 (char 0). Using default settings.

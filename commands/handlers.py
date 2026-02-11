@@ -119,11 +119,8 @@ def handle_generate_code(query: str = None, **kwargs) -> str:
 
     try:
         from services.llm_api import CodeGenerator
-        from config.settings import Settings
 
-        # Use the settings system - CodeGenerator will handle everything
-        settings = Settings()
-        generator = CodeGenerator(settings=settings)
+        generator = CodeGenerator()
         generated_code = generator.generate_code(query)
         # Instead of speaking the code, we return it for the GUI to display
         return generated_code

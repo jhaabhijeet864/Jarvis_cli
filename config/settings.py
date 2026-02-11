@@ -33,6 +33,9 @@ class Settings:
             'width': 900,
             'height': 700,
             'fps': 60,
+            'orb_radius_min': 30,
+            'orb_radius_max': 40,
+            'orb_breathe_speed': 0.02,
         },
         'llm': {
             'provider': 'google',  # google, openai, anthropic
@@ -43,6 +46,9 @@ class Settings:
     
     def __init__(self, config_file='config/settings.json'):
         self.config_file = Path(config_file)
+        # Initialize settings to defaults first, in case save() is called during load
+        self.settings = self.DEFAULT_SETTINGS.copy()
+        # Now load actual settings
         self.settings = self._load_settings()
         main_logger.info(f"Settings loaded from '{self.config_file}'.")
 
