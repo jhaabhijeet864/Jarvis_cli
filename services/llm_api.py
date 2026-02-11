@@ -4,33 +4,57 @@ This module provides an interface to a Large Language Model (LLM)
 for code generation, using the Google Generative AI API.
 """
 
+import logging
 import google.generativeai as genai
 from google.generativeai.types import generation_types
+
+# Import settings and config
+from config.settings import Settings
+import config
+
+# Get loggers
+llm_logger = logging.getLogger('llm')
+error_logger = logging.getLogger('errors')
 
 class CodeGenerator:
     """
     A robust client for the Google Generative AI API to generate code.
+    Retrieves configuration from the centralized settings system.
     """
 
-    def __init__(self, api_key: str):
+    def __init__(self, settings: Settings = None):
         """
-        Initializes the CodeGenerator.
+        Initializes the CodeGenerator using settings from the configuration system.
 
         Args:
-            api_key: The Google AI API key.
+            settings: Optional Settings instance. If None, creates a new one.
         
         Raises:
             ValueError: If the API key is missing or invalid.
         """
+        # Load settings if not provided
+        self.settings = settings or Settings()
+        
+        # Get API key from config.py (sensitive data stays in config.py)
+        api_key = config.GOOGLE_API_KEY
+        
         if not api_key or api_key == "YOUR_API_KEY_HERE":
+            error_logger.error("Google API key is not configured in config.py.")
             raise ValueError("Google API key is not configured. Please set it in config.py.")
+        
+        # Get LLM configuration from settings
+        self.model_name = self.settings.get('llm.model', 'gemini-pro')
+        self.temperature = self.settings.get('llm.temperature', 0.2)
+        self.provider = self.settings.get('llm.provider', 'google')
+        
+        llm_logger.info(f"Initializing CodeGenerator with provider='{self.provider}', model='{self.model_name}', temperature={self.temperature}")
         
         try:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-pro')
-            print("[LLM] CodeGenerator initialized successfully with Gemini-Pro.")
+            self.model = genai.GenerativeModel(self.model_name)
+            llm_logger.info(f"CodeGenerator initialized successfully with {self.model_name}.")
         except Exception as e:
-            print(f"[LLM] Error initializing Google Generative AI: {e}")
+            error_logger.exception(f"Error initializing Google Generative AI: {e}")
             raise ValueError("Failed to configure Google Generative AI. Check API key and network.")
 
     def generate_code(self, user_prompt: str) -> str:
@@ -54,13 +78,13 @@ class CodeGenerator:
             f"User Request: \"{user_prompt}\""
         )
         
-        print(f"[LLM] Sending prompt to Gemini-Pro: '{user_prompt}'")
+        llm_logger.info(f"Sending prompt to {self.model_name}: '{user_prompt[:50]}...'")
         
         try:
             # Set generation config for safety and predictability
             generation_config = genai.types.GenerationConfig(
                 candidate_count=1,
-                temperature=0.2 # Lower temperature for more predictable code
+                temperature=self.temperature  # Use temperature from settings
             )
             
             response = self.model.generate_content(
@@ -72,10 +96,11 @@ class CodeGenerator:
             if not response.parts:
                 finish_reason = response.prompt_feedback.block_reason.name if response.prompt_feedback else "Unknown"
                 error_message = f"I couldn't generate code for that. The request may have been blocked for safety reasons: {finish_reason}"
-                print(f"[LLM] API call failed or was blocked: {error_message}")
+                llm_logger.warning(f"API call failed or was blocked: {error_message}")
                 return error_message
 
             generated_code = response.text
+            llm_logger.info("Code generation successful.")
 
             # Clean up the response to only include the code block
             # Models often wrap the code in ```python ... ```
@@ -92,8 +117,8 @@ class CodeGenerator:
             return generated_code.strip()
 
         except generation_types.StopCandidateException as e:
-            print(f"[LLM] API call was stopped: {e}")
+            llm_logger.warning(f"API call was stopped: {e}")
             return f"I couldn't generate code for that. The request may have been blocked for safety reasons: {e}"
         except Exception as e:
-            print(f"[LLM] An unexpected error occurred during API call: {e}")
+            error_logger.exception(f"An unexpected error occurred during API call: {e}")
             return "Sorry, I encountered an error while trying to generate code."

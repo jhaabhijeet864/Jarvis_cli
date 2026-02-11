@@ -12,6 +12,7 @@ class JarvisLogger:
         self.setup_logger('main', 'main.log')
         self.setup_logger('stt', 'speech_recognition.log')
         self.setup_logger('commands', 'commands.log')
+        self.setup_logger('llm', 'llm.log')
         self.setup_logger('errors', 'errors.log', level=logging.ERROR)
     
     def setup_logger(self, name, filename, level=logging.INFO):

@@ -119,9 +119,11 @@ def handle_generate_code(query: str = None, **kwargs) -> str:
 
     try:
         from services.llm_api import CodeGenerator
-        import config
+        from config.settings import Settings
 
-        generator = CodeGenerator(api_key=config.GOOGLE_API_KEY)
+        # Use the settings system - CodeGenerator will handle everything
+        settings = Settings()
+        generator = CodeGenerator(settings=settings)
         generated_code = generator.generate_code(query)
         # Instead of speaking the code, we return it for the GUI to display
         return generated_code
