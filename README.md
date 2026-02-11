@@ -1,4 +1,4 @@
-### A Python Voice AssistaNT CLI
+### A Python Voice Assistant CLI
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -7,7 +7,7 @@ A Python-based voice assistant with a graphical user interface. Jarvis listens f
 
 ---
 
-## 🖼️ GUI Overview
+## 🖼️ CLI Overview
 
 ![Jarvis CLI](Jarvis_CLI.png)
 
