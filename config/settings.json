@@ -34,5 +34,8 @@
     "whisper_stt": {
         "model_size": "base",
         "device": "cpu"
+    },
+    "stt": {
+        "debug_save_audio": true
     }
 }

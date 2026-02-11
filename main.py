@@ -31,6 +31,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config.settings import Settings
 settings = Settings()
 
+# Import the new Gemini Client
+from services.llm_api import GeminiClient
+
 
 # =============================================================================
 # JarvisBot Class
@@ -39,7 +42,8 @@ settings = Settings()
 class JarvisBot(threading.Thread):
     """
     The backend voice processing engine.
-    Runs in a separate thread and communicates with the GUI via a queue.
+    Listens for a wake word, transcribes the following command using Gemini,
+    gets a conversational response from Gemini, and speaks the response.
     """
 
     def __init__(self, comm_queue: queue.Queue):
@@ -51,7 +55,7 @@ class JarvisBot(threading.Thread):
         self.wake_word = settings.get('wake_word.word', 'jarvis')
 
         # Voice I/O
-        main_logger.info("Loading Speech-to-Text (Vosk)...")
+        main_logger.info("Loading Speech-to-Text Engine...")
         from core.stt import SpeechToText
         self.stt = SpeechToText(
             settings=settings,
@@ -66,31 +70,9 @@ class JarvisBot(threading.Thread):
             volume=settings.get('tts.volume')
         )
 
-        # Actions
-        main_logger.info("Initializing App Launcher...")
-        from actions.apps import AppLauncher
-        self.app_launcher = AppLauncher()
-
-        main_logger.info("Initializing Browser Controller...")
-        from actions.browser import BrowserController
-        self.browser = BrowserController()
-
-        # Commands
-        main_logger.info("Initializing Command Handlers...")
-        from commands.parser import CommandParser
-        from commands.handlers import init_handlers, registry, is_stop_command
-        from utils.responses import JarvisResponses
-
-        self.parser = CommandParser()
-        self.registry = registry
-        self.is_stop_command = is_stop_command
-        self.responses = JarvisResponses()
-
-        init_handlers(
-            app_launcher=self.app_launcher,
-            browser=self.browser,
-            responses=self.responses
-        )
+        # Gemini Client for responses
+        main_logger.info("Initializing Gemini Client for responses...")
+        self.gemini_client = GeminiClient()
 
         # State
         self._running = False
@@ -101,82 +83,43 @@ class JarvisBot(threading.Thread):
         self._running = True
         self.stt.start_listening()
         
-        # Announce startup via queue
-        self._speak(self.responses.get('greeting'))
+        # Announce startup
+        self._speak("I am online and ready to assist.")
         main_logger.info(f"Listening for '{self.wake_word}' followed by a command...")
+        self.comm_queue.put({"state": "IDLE"})
+
 
         for phrase in self.stt.phrases():
             if not self._running:
                 break
 
             stt_logger.info(f"Heard: '{phrase}'")
-
-            # The STT engine now only yields transcribed commands after wake word
-            # and buffering. So, we can directly process the phrase as a command.
             self.comm_queue.put({"state": "THINKING"})
-            self._process_command(phrase.lower())
+
+            # Check for stop command locally
+            if phrase.lower().strip() in ["stop", "exit", "goodbye", "shutdown"]:
+                self._speak("Goodbye, sir.")
+                # self.stop() is not enough, we need to break the loop in the GUI
+                self.comm_queue.put({"state": "SHUTDOWN"})
+                break 
+
+            # Get conversational response from Gemini
+            response = self.gemini_client.generate_response(phrase)
+            self._speak(response)
 
     def _speak(self, text: str):
         """Send speak command to the queue and execute TTS."""
         if not text:
-            return
-        main_logger.info(f"Speaking: '{text}'")
-        self.comm_queue.put({"state": "SPEAKING", "text": text})
-        self.tts.speak(text) # Still run TTS from the backend thread
-        # After speaking, it's good practice to ensure the state returns to IDLE
-        # if no other action is pending.
-        self.comm_queue.put({"state": "IDLE"})
-
-    def _process_command(self, command_text: str):
-        """Parse and execute a command."""
-        if not command_text:
+            # If the response is empty, just go back to idle
             self.comm_queue.put({"state": "IDLE"})
             return
-
-        cmd_logger.info(f"Processing command: '{command_text}'")
-        try:
-            if self.is_stop_command(command_text):
-                 self._speak(self.responses.get('goodbye', goodbye="Goodbye, sir."))
-                 self.stop()
-                 return
-
-            parsed = self.parser.parse(command_text)
-            if not parsed:
-                cmd_logger.warning(f"Could not parse command: '{command_text}'")
-                self._speak(self.responses.get('not_understood'))
-                return
-
-            cmd_logger.info(f"Parsed command: Intent='{parsed.intent}', Target='{parsed.target}', Query='{parsed.query}'")
-            kwargs = {}
-            if parsed.target:
-                kwargs['target'] = parsed.target
-            if parsed.query:
-                kwargs['query'] = parsed.query
-
-            # Dispatch to the appropriate handler
-            success, response = self.registry.dispatch_safe(parsed.intent, **kwargs)
-
-            # Handle the response based on the intent
-            if parsed.intent == "generate_code":
-                if success:
-                    self._speak("Here is the code I generated for you.")
-                    # Send the code to the GUI for display
-                    self.comm_queue.put({"state": "DISPLAY_CODE", "code": response})
-                else:
-                    # If code generation failed, the response is an error message to speak
-                    error_logger.error(f"Code generation failed: {response}")
-                    self._speak(response)
-            elif success:
-                # For all other successful commands, just speak the response
-                self._speak(response)
-            else:
-                # For all other failed commands, speak the error
-                error_logger.error(f"Command '{parsed.intent}' failed: {response}")
-                self._speak(self.responses.get('error', error=response))
-
-        except Exception as e:
-            error_logger.exception(f"An unexpected error occurred while processing command: '{command_text}'")
-            self._speak(self.responses.get('error', error="An internal error occurred."))
+            
+        main_logger.info(f"Speaking: '{text}'")
+        self.comm_queue.put({"state": "SPEAKING", "text": text})
+        self.tts.speak(text)
+        # After speaking, go back to idle and listen for wake word
+        main_logger.info(f"Listening for '{self.wake_word}' followed by a command...")
+        self.comm_queue.put({"state": "IDLE"})
 
     def stop(self):
         """Stop the voice assistant and clean up."""
@@ -186,15 +129,10 @@ class JarvisBot(threading.Thread):
         main_logger.info("Shutting down Jarvis...")
         self._running = False
         
+        # Important: Stop STT to unblock the `phrases` generator
         self.stt.stop_listening()
         main_logger.info("Speech recognition stopped.")
         
-        try:
-            self.browser.close()
-            main_logger.info("Browser closed.")
-        except Exception as e:
-            error_logger.warning(f"Error closing browser during shutdown: {e}")
-
         main_logger.info("Shutdown complete.")
 
 
@@ -219,17 +157,7 @@ def print_banner():
     ╠═══════════════════════════════════════════════════════════╣
     ║                                                           ║
     ║   Wake Word: "{settings.get('wake_word.word', 'jarvis')}"                                   ║
-    ║                                                           ║
-    ║   Commands:                                               ║
-    ║     • "Open Notepad"      - Open applications             ║
-    ║     • "Open YouTube"      - Open websites                 ║
-    ║     • "Search for X"      - Search Google/YouTube         ║
-    ║     • "Play X on YouTube" - Search and play               ║
-    ║     • "Pause" / "Play"    - Media control                 ║
-    ║     • "What time is it?"  - Get current time              ║
-    ║     • "Stop" / "Exit"     - Shutdown Jarvis               ║
-    ║                                                           ║
-    ║   Press Ctrl+C to force quit                              ║
+    ║   Say 'stop' or 'exit' to quit.                           ║
     ║                                                           ║
     ╚═══════════════════════════════════════════════════════════╝
     """)
@@ -246,24 +174,6 @@ def check_requirements():
         errors.append("  Please download a model from https://alphacephei.com/vosk/models")
         errors.append(f"  and place it at the path specified in config/settings.json ('{model_path}')")
 
-    # Check core modules
-    try:
-        from core.stt import SpeechToText
-    except ImportError as e:
-        errors.append(f"Core module import error: {e}")
-
-    # Check action modules
-    try:
-        from actions.apps import AppLauncher
-    except ImportError as e:
-        errors.append(f"Actions module import error: {e}")
-
-    # Check command modules
-    try:
-        from commands.parser import CommandParser
-    except ImportError as e:
-        errors.append(f"Commands module import error: {e}")
-
     return errors
 
 
@@ -278,7 +188,6 @@ def main():
         for error in errors:
             error_logger.critical(f"- {error}")
         print("\nPlease fix the above issues and try again.")
-        print("You may need to run: pip install -r requirements.txt")
         sys.exit(1)
     main_logger.info("All requirements OK!")
 

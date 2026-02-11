@@ -1,0 +1,15 @@
+2026-02-11 21:10:25,016 - errors - ERROR - Failed to initialize Gemini client: module 'config' has no attribute 'GOOGLE_API_KEY'
+2026-02-11 21:10:25,175 - errors - CRITICAL - A fatal error occurred in the main application.
+Traceback (most recent call last):
+  File "D:\Coding\Jarvis_CLI\main.py", line 217, in <module>
+    main()
+  File "D:\Coding\Jarvis_CLI\main.py", line 198, in main
+    bot = JarvisBot(comm_queue)
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Coding\Jarvis_CLI\main.py", line 75, in __init__
+    self.gemini_client = GeminiClient()
+                         ^^^^^^^^^^^^^^
+  File "D:\Coding\Jarvis_CLI\services\llm_api.py", line 31, in __init__
+    api_key = config.GOOGLE_API_KEY
+              ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'config' has no attribute 'GOOGLE_API_KEY'

@@ -3,20 +3,13 @@ import queue
 import threading
 import logging
 import time
-from typing import Optional, Callable
-from pathlib import Path
-
-import json
-import queue
-import threading
-import logging
-import time
 import io
+import wave
 from typing import Optional
 from pathlib import Path
 
 from config.settings import Settings
-from services.whisper_stt import WhisperSpeechToText
+from services.llm_api import GeminiClient # Use the new GeminiClient
 
 try:
     import pyaudio
@@ -25,24 +18,19 @@ except ImportError:
 
 try:
     from vosk import Model, KaldiRecognizer, SetLogLevel
-    SetLogLevel(-1)  # Suppress Vosk logs
+    SetLogLevel(-1)
 except ImportError:
-    Model = None
-    KaldiRecognizer = None
+    Model = KaldiRecognizer = None
 
-# Get loggers
 stt_logger = logging.getLogger('stt')
 error_logger = logging.getLogger('errors')
 
 class SpeechToText:
     """
     Speech-to-Text engine using Vosk for offline wake word detection and
-    Whisper for local, high-accuracy command transcription.
-    
-    Streams audio from the microphone and provides text transcription.
+    Gemini API for cloud-based, high-accuracy command transcription.
     """
     
-    # Audio settings
     SAMPLE_RATE = 16000
     CHUNK_SIZE = 4000
     FORMAT = pyaudio.paInt16 if pyaudio else None
@@ -52,10 +40,10 @@ class SpeechToText:
         stt_logger.info("Initializing SpeechToText.")
         if not Model:
             error_logger.critical("Vosk library not found. Please run: pip install vosk")
-            raise ImportError("Vosk is not installed. Run: pip install vosk")
+            raise ImportError("Vosk is not installed.")
         if not pyaudio:
             error_logger.critical("PyAudio library not found. Please run: pip install pyaudio")
-            raise ImportError("PyAudio is not installed. Run: pip install pyaudio")
+            raise ImportError("PyAudio is not installed.")
         
         model_path = Path(model_path)
         if not model_path.exists():
@@ -66,32 +54,25 @@ class SpeechToText:
         self.comm_queue = comm_queue
 
         stt_logger.info(f"Loading Vosk model from: {model_path}")
-        self._model = Model(str(model_path)) # This model will be used for the wake word recognizer
+        self._model = Model(str(model_path))
         self._vosk_wake_word_recognizer = KaldiRecognizer(self._model, self.SAMPLE_RATE)
         
         self._audio = pyaudio.PyAudio()
         self._stream: Optional[pyaudio.Stream] = None
         
         self._listening = False
-        self._audio_queue = queue.Queue() # Queue for raw audio chunks
+        self._audio_queue = queue.Queue()
         self._listen_thread: Optional[threading.Thread] = None
 
         self._wake_word_detected = False
-        self._whisper_stt_buffer = io.BytesIO()
-        self._whisper_stt_client: Optional[WhisperSpeechToText] = None
-
-        if self.settings.get('whisper_stt'):
-            stt_logger.info("Initializing Whisper Speech-to-Text client.")
-            try:
-                self._whisper_stt_client = WhisperSpeechToText(
-                    model_size=self.settings.get('whisper_stt.model_size', 'base'),
-                    device=self.settings.get('whisper_stt.device', 'cpu')
-                )
-            except Exception as e:
-                error_logger.error(f"Failed to initialize Whisper Speech-to-Text client: {e}")
-                self._whisper_stt_client = None
-        else:
-            stt_logger.info("Whisper Speech-to-Text is not configured.")
+        
+        # Initialize the new Gemini Client
+        stt_logger.info("Initializing Gemini API client.")
+        try:
+            self._gemini_client = GeminiClient()
+        except Exception as e:
+            error_logger.error(f"Failed to initialize Gemini client: {e}")
+            self._gemini_client = None
 
         stt_logger.info("SpeechToText initialized successfully.")
     
@@ -131,45 +112,55 @@ class SpeechToText:
                 break
     
     def phrases(self):
-        """
-        Yields completed phrases from the continuous audio stream.
-        This is a generator function that implements hybrid STT.
-        """
         if not self._listening:
             try:
                 self.start_listening()
             except IOError:
-                stt_logger.error("Cannot start listening, microphone might not be available. Exiting phrase generator.")
+                stt_logger.error("Cannot start listening, microphone might not be available.")
                 return
 
         wake_word = self.settings.get('wake_word.word', 'jarvis').lower()
         
-        whisper_audio_chunks = []
-        whisper_buffering_start_time = 0
-        WHISPER_BUFFER_DURATION = 3 # seconds
+        audio_buffer = []
+        buffering_start_time = 0
+        BUFFER_DURATION = 3 # seconds to record after wake word
 
         while self._listening:
             try:
                 data = self._audio_queue.get(timeout=0.5)
 
                 if self._wake_word_detected:
-                    whisper_audio_chunks.append(data)
-                    if (time.time() - whisper_buffering_start_time > WHISPER_BUFFER_DURATION):
-                        stt_logger.debug(f"Whisper buffer duration of {WHISPER_BUFFER_DURATION}s exceeded.")
-                        if self._whisper_stt_client and whisper_audio_chunks:
-                            audio_content = b"".join(whisper_audio_chunks)
-                            stt_logger.info("Sending buffered audio to Whisper for transcription.")
-                            self.comm_queue.put({"state": "THINKING"}) # Inform GUI we are processing
-                            transcript = self._whisper_stt_client.transcribe_audio(
-                                audio_bytes=audio_content,
+                    audio_buffer.append(data)
+                    if (time.time() - buffering_start_time > BUFFER_DURATION):
+                        stt_logger.debug(f"Buffer duration of {BUFFER_DURATION}s exceeded.")
+                        
+                        if self._gemini_client and audio_buffer:
+                            audio_content = b"".join(audio_buffer)
+                            
+                            # We need to save the audio to a wav in memory to send to Gemini
+                            with io.BytesIO() as wav_io:
+                                with wave.open(wav_io, "wb") as wf:
+                                    wf.setnchannels(self.CHANNELS)
+                                    wf.setsampwidth(self._audio.get_sample_size(self.FORMAT))
+                                    wf.setframerate(self.SAMPLE_RATE)
+                                    wf.writeframes(audio_content)
+                                wav_bytes = wav_io.getvalue()
+
+                            stt_logger.info("Sending buffered audio to Gemini for transcription.")
+                            self.comm_queue.put({"state": "THINKING"})
+                            
+                            transcript = self._gemini_client.transcribe_audio(
+                                audio_bytes=wav_bytes,
                                 sample_rate=self.SAMPLE_RATE
                             )
+                            
                             if transcript:
-                                stt_logger.info(f"Whisper recognized: '{transcript}'")
+                                stt_logger.info(f"Gemini recognized: '{transcript}'")
                                 yield transcript
+
                         self._wake_word_detected = False
-                        whisper_audio_chunks = []
-                        whisper_buffering_start_time = 0
+                        audio_buffer = []
+                        buffering_start_time = 0
                     continue
                 
                 if self._vosk_wake_word_recognizer.AcceptWaveform(data):
@@ -178,10 +169,10 @@ class SpeechToText:
                     
                     if vosk_text and wake_word in vosk_text:
                         stt_logger.info(f"Wake word '{wake_word}' detected by Vosk.")
-                        self.comm_queue.put({"state": "LISTENING"}) # Inform GUI we are listening for a command
+                        self.comm_queue.put({"state": "LISTENING"})
                         self._wake_word_detected = True
-                        whisper_audio_chunks = [data]
-                        whisper_buffering_start_time = time.time()
+                        audio_buffer = [data] # Start buffer with the chunk containing the wake word
+                        buffering_start_time = time.time()
                 else:
                     partial_result = json.loads(self._vosk_wake_word_recognizer.PartialResult())
                     if partial_result.get('partial', ''):
@@ -224,10 +215,6 @@ class SpeechToText:
         
         self._model = None
         self._vosk_wake_word_recognizer = None
-
-        if self._whisper_stt_client:
-            del self._whisper_stt_client
-
         stt_logger.info("STT resources cleaned up.")
     
     def __del__(self):

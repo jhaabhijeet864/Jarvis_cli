@@ -14,7 +14,8 @@ class WhisperSpeechToText:
     Handles transcription using a local Whisper model.
     """
 
-    def __init__(self, model_size: str = "base", device: str = "cpu"):
+    def __init__(self, settings, model_size: str = "base", device: str = "cpu"):
+        self.settings = settings
         self.model_size = model_size
         self.device = device
         self.model = self._load_model()
@@ -66,11 +67,20 @@ class WhisperSpeechToText:
             return ""
 
         try:
+            # --- Debugging: Save the audio buffer to a file ---
+            if self.settings.get('stt.debug_save_audio', False):
+                stt_logger.info(f"Received {len(audio_bytes)} bytes for transcription.")
+                stt_logger.info("Saving audio buffer to debug_audio.wav")
+                with wave.open("debug_audio.wav", "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)  # 16-bit
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(audio_bytes)
+                stt_logger.info("Debug audio file saved.")
+            # --- End Debugging ---
+
             # Whisper expects a NumPy array of 16-bit signed integers for the audio.
             # The audio_bytes are raw bytes, so we need to convert them.
-            
-            # The audio from PyAudio is in 'int16' format.
-            # We can use numpy.frombuffer to interpret the bytes as a NumPy array.
             audio_np = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
 
             # Transcribe the audio
