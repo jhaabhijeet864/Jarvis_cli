@@ -184,7 +184,7 @@ class CommandParser:
         # "status", "how are you", "are you there"
         patterns.append((
             re.compile(
-                r"^(status|how\s+are\s+you|are\s+you\s+there|you\s+there|hello|hi)$",
+                r"^(?:hey\s+)?(status|how\s+are\s+you|are\s+you\s+there|you\s+there|hello|hi)$",
                 re.IGNORECASE
             ),
             "status",

@@ -54,8 +54,9 @@ class JarvisBot(threading.Thread):
         main_logger.info("Loading Speech-to-Text (Vosk)...")
         from core.stt import SpeechToText
         self.stt = SpeechToText(
+            settings=settings,
             model_path=settings.get('audio.vosk_model'),
-            chunk_size=settings.get('audio.chunk_size')
+            comm_queue=self.comm_queue
         )
 
         main_logger.info("Loading Text-to-Speech (pyttsx3)...")
@@ -104,29 +105,16 @@ class JarvisBot(threading.Thread):
         self._speak(self.responses.get('greeting'))
         main_logger.info(f"Listening for '{self.wake_word}' followed by a command...")
 
-        listening_for_command = False
-        
         for phrase in self.stt.phrases():
             if not self._running:
                 break
 
             stt_logger.info(f"Heard: '{phrase}'")
 
-            if not listening_for_command:
-                if self.wake_word.lower() in phrase.lower():
-                    command_text = phrase.lower().replace(self.wake_word.lower(), "").strip()
-                    
-                    if command_text:
-                        self._process_command(command_text)
-                    else:
-                        self.comm_queue.put({"state": "LISTENING"})
-                        self._speak("Yes?")
-                        listening_for_command = True
-            else:
-                self._process_command(phrase.lower())
-                listening_for_command = False
-                # Go back to idle state after processing
-                self.comm_queue.put({"state": "IDLE"})
+            # The STT engine now only yields transcribed commands after wake word
+            # and buffering. So, we can directly process the phrase as a command.
+            self.comm_queue.put({"state": "THINKING"})
+            self._process_command(phrase.lower())
 
     def _speak(self, text: str):
         """Send speak command to the queue and execute TTS."""
@@ -135,6 +123,9 @@ class JarvisBot(threading.Thread):
         main_logger.info(f"Speaking: '{text}'")
         self.comm_queue.put({"state": "SPEAKING", "text": text})
         self.tts.speak(text) # Still run TTS from the backend thread
+        # After speaking, it's good practice to ensure the state returns to IDLE
+        # if no other action is pending.
+        self.comm_queue.put({"state": "IDLE"})
 
     def _process_command(self, command_text: str):
         """Parse and execute a command."""

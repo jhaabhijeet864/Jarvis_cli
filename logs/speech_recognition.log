@@ -1,0 +1,37 @@
+2026-02-11 20:36:13,215 - stt - INFO - Initializing SpeechToText.
+2026-02-11 20:36:13,215 - stt - INFO - Loading Vosk model from: models\vosk-model-en-us-0.22-lgraph
+2026-02-11 20:36:14,676 - stt - INFO - Initializing Whisper Speech-to-Text client.
+2026-02-11 20:36:14,676 - stt - INFO - Loading Whisper model 'base'. This may take a while on the first run as the model is downloaded...
+2026-02-11 20:36:15,432 - stt - INFO - Whisper model loaded successfully.
+2026-02-11 20:36:15,432 - stt - INFO - WhisperSpeechToText initialized with model 'base' on device 'cuda'.
+2026-02-11 20:36:15,433 - stt - INFO - CUDA is available. Whisper will run on the GPU.
+2026-02-11 20:36:15,433 - stt - INFO - SpeechToText initialized successfully.
+2026-02-11 20:36:15,680 - stt - INFO - Starting audio stream and listener thread.
+2026-02-11 20:36:15,907 - stt - INFO - Audio listener started.
+2026-02-11 20:36:38,185 - stt - INFO - Wake word 'jarvis' detected by Vosk.
+2026-02-11 20:36:41,265 - stt - INFO - Sending buffered audio to Whisper for transcription.
+2026-02-11 20:40:01,456 - stt - INFO - Initializing SpeechToText.
+2026-02-11 20:40:01,456 - stt - INFO - Loading Vosk model from: models\vosk-model-en-us-0.22-lgraph
+2026-02-11 20:40:02,868 - stt - INFO - Initializing Whisper Speech-to-Text client.
+2026-02-11 20:40:02,868 - stt - INFO - Loading Whisper model 'base'. This may take a while on the first run as the model is downloaded...
+2026-02-11 20:40:03,591 - stt - INFO - Whisper model loaded successfully.
+2026-02-11 20:40:03,591 - stt - INFO - WhisperSpeechToText initialized with model 'base' on device 'cuda'.
+2026-02-11 20:40:03,591 - stt - INFO - CUDA is available. Whisper will run on the GPU.
+2026-02-11 20:40:03,591 - stt - INFO - SpeechToText initialized successfully.
+2026-02-11 20:40:03,849 - stt - INFO - Starting audio stream and listener thread.
+2026-02-11 20:40:04,081 - stt - INFO - Audio listener started.
+2026-02-11 20:40:10,824 - stt - INFO - Wake word 'jarvis' detected by Vosk.
+2026-02-11 20:40:13,903 - stt - INFO - Sending buffered audio to Whisper for transcription.
+2026-02-11 20:41:44,036 - stt - INFO - Stopping audio listener.
+2026-02-11 20:41:44,158 - stt - INFO - Audio listener stopped.
+2026-02-11 20:44:57,451 - stt - INFO - Initializing SpeechToText.
+2026-02-11 20:44:57,451 - stt - INFO - Loading Vosk model from: models\vosk-model-en-us-0.22-lgraph
+2026-02-11 20:44:58,895 - stt - INFO - Initializing Whisper Speech-to-Text client.
+2026-02-11 20:44:58,895 - stt - INFO - Loading Whisper model 'base'. This may take a while on the first run as the model is downloaded...
+2026-02-11 20:44:59,374 - stt - INFO - Whisper model loaded successfully.
+2026-02-11 20:44:59,374 - stt - INFO - WhisperSpeechToText initialized with model 'base' on device 'cpu'.
+2026-02-11 20:44:59,374 - stt - INFO - SpeechToText initialized successfully.
+2026-02-11 20:44:59,610 - stt - INFO - Starting audio stream and listener thread.
+2026-02-11 20:44:59,994 - stt - INFO - Audio listener started.
+2026-02-11 20:45:09,179 - stt - INFO - Wake word 'jarvis' detected by Vosk.
+2026-02-11 20:45:12,183 - stt - INFO - Sending buffered audio to Whisper for transcription.

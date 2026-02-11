@@ -16,6 +16,7 @@ WHITE = (230, 230, 230)
 CODE_BG = (20, 20, 30)
 ORB_COLOR_IDLE = (0, 100, 255)       # Blue
 ORB_COLOR_LISTENING = (100, 255, 100) # Green
+ORB_COLOR_THINKING = (255, 255, 100)   # Yellow
 ORB_COLOR_SPEAKING = (255, 100, 0)    # Orange
 ORB_COLOR_CODING = (160, 32, 240)     # Purple
 
@@ -122,6 +123,11 @@ class Visualizer:
             self.orb_radius = self.orb_radius_max + 5 * (0.5 * (1 + math.sin(self.angle * 2)))
             self.current_glow_alpha = min(150, self.current_glow_alpha + 10)
         
+        elif self.state == "THINKING":
+            target_color = ORB_COLOR_THINKING
+            self.orb_radius = self.orb_radius_min + (self.orb_radius_max - self.orb_radius_min) * (0.5 * (1 + math.sin(self.angle * 4)))
+            self.current_glow_alpha = min(200, self.current_glow_alpha + 15)
+
         elif self.state == "SPEAKING":
             target_color = ORB_COLOR_SPEAKING
             if self.speaking_pulse > 0:

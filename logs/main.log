@@ -1,43 +1,82 @@
-2026-02-11 17:48:58,593 - main - INFO - Settings file not found. Creating with default settings: config\settings.json
-2026-02-11 17:48:58,593 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:48:58,601 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:49:49,804 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:49:49,806 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:49:50,757 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:49:50,758 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:49:52,809 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:49:52,810 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:49:52,810 - main - INFO - Setting 'tts.rate' updated to '200'.
-2026-02-11 17:49:52,810 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:49:52,812 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:49:52,830 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:49:52,831 - main - INFO - Setting 'tts.rate' updated to '180'.
-2026-02-11 17:49:52,831 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:52:59,422 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:52:59,438 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:55:01,806 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:55:01,806 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:55:03,189 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:55:03,189 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:55:04,415 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:55:04,415 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:55:04,415 - main - INFO - Setting 'tts.rate' updated to '200'.
-2026-02-11 17:55:04,416 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:55:04,417 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:55:04,431 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:55:04,432 - main - INFO - Setting 'tts.rate' updated to '180'.
-2026-02-11 17:55:04,432 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:56:55,657 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:56:55,660 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:56:57,700 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:56:57,700 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:56:57,738 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:56:57,738 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:56:57,738 - main - INFO - Setting 'tts.rate' updated to '200'.
-2026-02-11 17:56:57,738 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:56:57,740 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:56:57,742 - main - INFO - Settings loaded from 'config\settings.json'.
-2026-02-11 17:56:57,742 - main - INFO - Setting 'tts.rate' updated to '180'.
-2026-02-11 17:56:57,742 - main - INFO - Saving settings to 'config\settings.json'.
-2026-02-11 17:57:06,296 - main - INFO - Loading settings from existing file: config\settings.json
-2026-02-11 17:57:06,299 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 20:36:11,263 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 20:36:11,263 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 20:36:11,263 - main - INFO - Checking requirements...
+2026-02-11 20:36:13,215 - main - INFO - All requirements OK!
+2026-02-11 20:36:13,215 - main - INFO - Initializing Jarvis Backend...
+2026-02-11 20:36:13,215 - main - INFO - Loading Speech-to-Text (Vosk)...
+2026-02-11 20:36:15,434 - main - INFO - Loading Text-to-Speech (pyttsx3)...
+2026-02-11 20:36:15,436 - main - INFO - Initializing TextToSpeech.
+2026-02-11 20:36:15,571 - main - INFO - Set TTS voice to: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0
+2026-02-11 20:36:15,572 - main - INFO - TextToSpeech initialized successfully.
+2026-02-11 20:36:15,572 - main - INFO - Initializing App Launcher...
+2026-02-11 20:36:15,572 - main - INFO - Initializing Browser Controller...
+2026-02-11 20:36:15,676 - main - INFO - BrowserController initialized.
+2026-02-11 20:36:15,676 - main - INFO - Initializing Command Handlers...
+2026-02-11 20:36:15,680 - main - INFO - MediaController initialized.
+2026-02-11 20:36:15,680 - main - INFO - SearchController initialized.
+2026-02-11 20:36:15,680 - main - INFO - Jarvis Backend initialized successfully!
+2026-02-11 20:36:15,818 - main - INFO - Initializing GUI Visualizer.
+2026-02-11 20:36:15,907 - main - INFO - Speaking: 'Good day, sir.'
+2026-02-11 20:36:16,093 - main - INFO - GUI Visualizer initialized successfully.
+2026-02-11 20:36:16,096 - main - INFO - GUI received state change: SPEAKING
+2026-02-11 20:36:19,323 - main - INFO - Listening for 'jarvis' followed by a command...
+2026-02-11 20:36:19,324 - main - INFO - GUI received state change: IDLE
+2026-02-11 20:36:38,200 - main - INFO - GUI received state change: LISTENING
+2026-02-11 20:36:41,267 - main - INFO - GUI received state change: THINKING
+2026-02-11 20:39:59,543 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 20:39:59,543 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 20:39:59,544 - main - INFO - Checking requirements...
+2026-02-11 20:40:01,456 - main - INFO - All requirements OK!
+2026-02-11 20:40:01,456 - main - INFO - Initializing Jarvis Backend...
+2026-02-11 20:40:01,456 - main - INFO - Loading Speech-to-Text (Vosk)...
+2026-02-11 20:40:03,591 - main - INFO - Loading Text-to-Speech (pyttsx3)...
+2026-02-11 20:40:03,594 - main - INFO - Initializing TextToSpeech.
+2026-02-11 20:40:03,742 - main - INFO - Set TTS voice to: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0
+2026-02-11 20:40:03,742 - main - INFO - TextToSpeech initialized successfully.
+2026-02-11 20:40:03,742 - main - INFO - Initializing App Launcher...
+2026-02-11 20:40:03,742 - main - INFO - Initializing Browser Controller...
+2026-02-11 20:40:03,844 - main - INFO - BrowserController initialized.
+2026-02-11 20:40:03,844 - main - INFO - Initializing Command Handlers...
+2026-02-11 20:40:03,848 - main - INFO - MediaController initialized.
+2026-02-11 20:40:03,848 - main - INFO - SearchController initialized.
+2026-02-11 20:40:03,848 - main - INFO - Jarvis Backend initialized successfully!
+2026-02-11 20:40:03,993 - main - INFO - Initializing GUI Visualizer.
+2026-02-11 20:40:04,081 - main - INFO - Speaking: 'Good day, sir.'
+2026-02-11 20:40:04,279 - main - INFO - GUI Visualizer initialized successfully.
+2026-02-11 20:40:04,281 - main - INFO - GUI received state change: SPEAKING
+2026-02-11 20:40:06,323 - main - INFO - Listening for 'jarvis' followed by a command...
+2026-02-11 20:40:06,339 - main - INFO - GUI received state change: IDLE
+2026-02-11 20:40:10,827 - main - INFO - GUI received state change: LISTENING
+2026-02-11 20:40:13,919 - main - INFO - GUI received state change: THINKING
+2026-02-11 20:41:43,976 - main - INFO - GUI is shutting down.
+2026-02-11 20:41:44,036 - main - INFO - Shutting down Jarvis...
+2026-02-11 20:41:44,158 - main - INFO - Speech recognition stopped.
+2026-02-11 20:41:44,159 - main - INFO - Browser was not running, no need to close.
+2026-02-11 20:41:44,159 - main - INFO - Browser closed.
+2026-02-11 20:41:44,159 - main - INFO - Shutdown complete.
+2026-02-11 20:41:44,159 - main - INFO - Application has been shut down.
+2026-02-11 20:44:55,475 - main - INFO - Loading settings from existing file: config\settings.json
+2026-02-11 20:44:55,475 - main - INFO - Settings loaded from 'config\settings.json'.
+2026-02-11 20:44:55,475 - main - INFO - Checking requirements...
+2026-02-11 20:44:57,451 - main - INFO - All requirements OK!
+2026-02-11 20:44:57,451 - main - INFO - Initializing Jarvis Backend...
+2026-02-11 20:44:57,451 - main - INFO - Loading Speech-to-Text (Vosk)...
+2026-02-11 20:44:59,374 - main - INFO - Loading Text-to-Speech (pyttsx3)...
+2026-02-11 20:44:59,377 - main - INFO - Initializing TextToSpeech.
+2026-02-11 20:44:59,505 - main - INFO - Set TTS voice to: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0
+2026-02-11 20:44:59,505 - main - INFO - TextToSpeech initialized successfully.
+2026-02-11 20:44:59,505 - main - INFO - Initializing App Launcher...
+2026-02-11 20:44:59,505 - main - INFO - Initializing Browser Controller...
+2026-02-11 20:44:59,607 - main - INFO - BrowserController initialized.
+2026-02-11 20:44:59,607 - main - INFO - Initializing Command Handlers...
+2026-02-11 20:44:59,610 - main - INFO - MediaController initialized.
+2026-02-11 20:44:59,610 - main - INFO - SearchController initialized.
+2026-02-11 20:44:59,610 - main - INFO - Jarvis Backend initialized successfully!
+2026-02-11 20:44:59,752 - main - INFO - Initializing GUI Visualizer.
+2026-02-11 20:44:59,994 - main - INFO - Speaking: 'Jarvis online and at your service.'
+2026-02-11 20:45:00,010 - main - INFO - GUI Visualizer initialized successfully.
+2026-02-11 20:45:00,013 - main - INFO - GUI received state change: SPEAKING
+2026-02-11 20:45:02,613 - main - INFO - Listening for 'jarvis' followed by a command...
+2026-02-11 20:45:02,620 - main - INFO - GUI received state change: IDLE
+2026-02-11 20:45:09,192 - main - INFO - GUI received state change: LISTENING
+2026-02-11 20:45:12,198 - main - INFO - GUI received state change: THINKING
