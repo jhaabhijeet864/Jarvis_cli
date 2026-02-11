@@ -14,20 +14,22 @@ import sys
 import time
 import threading
 import queue
+import logging
 from pathlib import Path
+
+# Initialize logger
+from utils.logger import JarvisLogger
+main_logger = logging.getLogger('main')
+error_logger = logging.getLogger('errors')
+stt_logger = logging.getLogger('stt')
+cmd_logger = logging.getLogger('commands')
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-# =============================================================================
-# Configuration
-# =============================================================================
-
-VOSK_MODEL_PATH = "models/vosk-model-en-us-0.22-lgraph"
-WAKE_WORD = "jarvis"
-LISTEN_TIMEOUT = 5.0
-TTS_RATE = 180
-TTS_VOLUME = 1.0
+# Initialize settings first
+from config.settings import Settings
+settings = Settings()
 
 
 # =============================================================================
@@ -43,46 +45,55 @@ class JarvisBot(threading.Thread):
     def __init__(self, comm_queue: queue.Queue):
         """Initialize all components."""
         super().__init__(daemon=True)
-        print("[INIT] Initializing Jarvis Backend...")
+        main_logger.info("Initializing Jarvis Backend...")
         
         self.comm_queue = comm_queue
+        self.wake_word = settings.get('wake_word.word', 'jarvis')
 
         # Voice I/O
-        print("[INIT] Loading Speech-to-Text (Vosk)...")
+        main_logger.info("Loading Speech-to-Text (Vosk)...")
         from core.stt import SpeechToText
-        self.stt = SpeechToText(VOSK_MODEL_PATH)
+        self.stt = SpeechToText(
+            model_path=settings.get('audio.vosk_model'),
+            chunk_size=settings.get('audio.chunk_size')
+        )
 
-        print("[INIT] Loading Text-to-Speech (pyttsx3)...")
+        main_logger.info("Loading Text-to-Speech (pyttsx3)...")
         from core.tts import TextToSpeech
-        self.tts = TextToSpeech(rate=TTS_RATE, volume=TTS_VOLUME)
+        self.tts = TextToSpeech(
+            rate=settings.get('tts.rate'),
+            volume=settings.get('tts.volume')
+        )
 
         # Actions
-        print("[INIT] Initializing App Launcher...")
+        main_logger.info("Initializing App Launcher...")
         from actions.apps import AppLauncher
         self.app_launcher = AppLauncher()
 
-        print("[INIT] Initializing Browser Controller...")
+        main_logger.info("Initializing Browser Controller...")
         from actions.browser import BrowserController
         self.browser = BrowserController()
 
         # Commands
-        print("[INIT] Initializing Command Handlers...")
+        main_logger.info("Initializing Command Handlers...")
         from commands.parser import CommandParser
         from commands.handlers import init_handlers, registry, is_stop_command
+        from utils.responses import JarvisResponses
 
         self.parser = CommandParser()
         self.registry = registry
         self.is_stop_command = is_stop_command
+        self.responses = JarvisResponses()
 
         init_handlers(
             app_launcher=self.app_launcher,
             browser=self.browser,
-            responses=None
+            responses=self.responses
         )
 
         # State
         self._running = False
-        print("[INIT] Jarvis Backend initialized successfully!")
+        main_logger.info("Jarvis Backend initialized successfully!")
 
     def run(self):
         """The main command loop of the bot."""
@@ -90,8 +101,8 @@ class JarvisBot(threading.Thread):
         self.stt.start_listening()
         
         # Announce startup via queue
-        self._speak("Jarvis online.")
-        print(f"[JARVIS] Listening for '{WAKE_WORD}' followed by a command...")
+        self._speak(self.responses.get('greeting'))
+        main_logger.info(f"Listening for '{self.wake_word}' followed by a command...")
 
         listening_for_command = False
         
@@ -99,11 +110,11 @@ class JarvisBot(threading.Thread):
             if not self._running:
                 break
 
-            print(f"[HEARD] '{phrase}'")
+            stt_logger.info(f"Heard: '{phrase}'")
 
             if not listening_for_command:
-                if WAKE_WORD.lower() in phrase.lower():
-                    command_text = phrase.lower().replace(WAKE_WORD.lower(), "").strip()
+                if self.wake_word.lower() in phrase.lower():
+                    command_text = phrase.lower().replace(self.wake_word.lower(), "").strip()
                     
                     if command_text:
                         self._process_command(command_text)
@@ -121,6 +132,7 @@ class JarvisBot(threading.Thread):
         """Send speak command to the queue and execute TTS."""
         if not text:
             return
+        main_logger.info(f"Speaking: '{text}'")
         self.comm_queue.put({"state": "SPEAKING", "text": text})
         self.tts.speak(text) # Still run TTS from the backend thread
 
@@ -130,17 +142,20 @@ class JarvisBot(threading.Thread):
             self.comm_queue.put({"state": "IDLE"})
             return
 
+        cmd_logger.info(f"Processing command: '{command_text}'")
         try:
             if self.is_stop_command(command_text):
-                 self._speak("Goodbye, sir.")
+                 self._speak(self.responses.get('goodbye', goodbye="Goodbye, sir."))
                  self.stop()
                  return
 
             parsed = self.parser.parse(command_text)
             if not parsed:
-                self._speak("I didn't understand that, sir.")
+                cmd_logger.warning(f"Could not parse command: '{command_text}'")
+                self._speak(self.responses.get('not_understood'))
                 return
 
+            cmd_logger.info(f"Parsed command: Intent='{parsed.intent}', Target='{parsed.target}', Query='{parsed.query}'")
             kwargs = {}
             if parsed.target:
                 kwargs['target'] = parsed.target
@@ -158,36 +173,38 @@ class JarvisBot(threading.Thread):
                     self.comm_queue.put({"state": "DISPLAY_CODE", "code": response})
                 else:
                     # If code generation failed, the response is an error message to speak
+                    error_logger.error(f"Code generation failed: {response}")
                     self._speak(response)
             elif success:
                 # For all other successful commands, just speak the response
                 self._speak(response)
             else:
                 # For all other failed commands, speak the error
-                self._speak(f"I encountered an error. {response}")
+                error_logger.error(f"Command '{parsed.intent}' failed: {response}")
+                self._speak(self.responses.get('error', error=response))
 
         except Exception as e:
-            print(f"[ERROR] Processing error: {e}")
-            self._speak("I encountered an error, sir.")
+            error_logger.exception(f"An unexpected error occurred while processing command: '{command_text}'")
+            self._speak(self.responses.get('error', error="An internal error occurred."))
 
     def stop(self):
         """Stop the voice assistant and clean up."""
         if not self._running:
             return
             
-        print("\n[JARVIS] Shutting down...")
+        main_logger.info("Shutting down Jarvis...")
         self._running = False
         
         self.stt.stop_listening()
-        print("[CLEANUP] Speech recognition stopped.")
+        main_logger.info("Speech recognition stopped.")
         
         try:
             self.browser.close()
-            print("[CLEANUP] Browser closed")
+            main_logger.info("Browser closed.")
         except Exception as e:
-            print(f"[CLEANUP] Browser close error: {e}")
+            error_logger.warning(f"Error closing browser during shutdown: {e}")
 
-        print("[JARVIS] Shutdown complete.")
+        main_logger.info("Shutdown complete.")
 
 
 # =============================================================================
@@ -196,7 +213,7 @@ class JarvisBot(threading.Thread):
 
 def print_banner():
     """Print the startup banner."""
-    print("""
+    print(f"""
     ╔═══════════════════════════════════════════════════════════╗
     ║                                                           ║
     ║         ██╗ █████╗ ██████╗ ██╗   ██╗██╗███████╗           ║
@@ -210,7 +227,7 @@ def print_banner():
     ║                                                           ║
     ╠═══════════════════════════════════════════════════════════╣
     ║                                                           ║
-    ║   Wake Word: "Jarvis"                                   ║
+    ║   Wake Word: "{settings.get('wake_word.word', 'jarvis')}"                                   ║
     ║                                                           ║
     ║   Commands:                                               ║
     ║     • "Open Notepad"      - Open applications             ║
@@ -232,49 +249,29 @@ def check_requirements():
     errors = []
 
     # Check Vosk model
-    model_path = Path(VOSK_MODEL_PATH)
+    model_path = Path(settings.get('audio.vosk_model'))
     if not model_path.exists():
         errors.append(f"Vosk model not found at: {model_path.absolute()}")
-        errors.append("  Download from: https://alphacephei.com/vosk/models")
-        errors.append("  Get: vosk-model-small-en-us-0.15 (~40MB)")
+        errors.append("  Please download a model from https://alphacephei.com/vosk/models")
+        errors.append(f"  and place it at the path specified in config/settings.json ('{model_path}')")
 
     # Check core modules
     try:
         from core.stt import SpeechToText
     except ImportError as e:
-        errors.append(f"Stream 1 (core/stt.py) import error: {e}")
-
-    try:
-        from core.tts import TextToSpeech
-    except ImportError as e:
-        errors.append(f"Stream 1 (core/tts.py) import error: {e}")
-
-    try:
-        from core.hotkey import HotkeyListener
-    except ImportError as e:
-        errors.append(f"Stream 1 (core/hotkey.py) import error: {e}")
+        errors.append(f"Core module import error: {e}")
 
     # Check action modules
     try:
         from actions.apps import AppLauncher
     except ImportError as e:
-        errors.append(f"Stream 2 (actions/apps.py) import error: {e}")
-
-    try:
-        from actions.browser import BrowserController
-    except ImportError as e:
-        errors.append(f"Stream 2 (actions/browser.py) import error: {e}")
+        errors.append(f"Actions module import error: {e}")
 
     # Check command modules
     try:
         from commands.parser import CommandParser
     except ImportError as e:
-        errors.append(f"Stream 3 (commands/parser.py) import error: {e}")
-
-    try:
-        from commands.handlers import registry
-    except ImportError as e:
-        errors.append(f"Stream 3 (commands/handlers.py) import error: {e}")
+        errors.append(f"Commands module import error: {e}")
 
     return errors
 
@@ -283,16 +280,16 @@ def main():
     """Main entry point for the GUI-based voice assistant."""
     # Check requirements first
     print_banner()
-    print("[STARTUP] Checking requirements...")
+    main_logger.info("Checking requirements...")
     errors = check_requirements()
     if errors:
-        print("\n[ERROR] Missing requirements:\n")
+        error_logger.critical("Missing critical requirements:")
         for error in errors:
-            print(f"  {error}")
+            error_logger.critical(f"- {error}")
         print("\nPlease fix the above issues and try again.")
         print("You may need to run: pip install -r requirements.txt")
         sys.exit(1)
-    print("[STARTUP] All requirements OK!")
+    main_logger.info("All requirements OK!")
 
     # Create a queue for communication between GUI and Bot
     comm_queue = queue.Queue()
@@ -303,12 +300,21 @@ def main():
 
     # Start the GUI
     from gui import Visualizer
-    visualizer = Visualizer(comm_queue)
-    visualizer.run() # This will block until the GUI is closed
-
-    # After GUI closes, stop the bot thread
-    bot.stop()
+    visualizer = Visualizer(comm_queue, settings)
+    
+    try:
+        visualizer.run() # This will block until the GUI is closed
+    except KeyboardInterrupt:
+        main_logger.info("GUI interrupted by user (Ctrl+C).")
+    finally:
+        # After GUI closes or on interrupt, stop the bot thread
+        bot.stop()
+        main_logger.info("Application has been shut down.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        error_logger.critical("A fatal error occurred in the main application.", exc_info=True)
+        sys.exit(1)

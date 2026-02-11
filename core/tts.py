@@ -1,12 +1,11 @@
-"""
-Text-to-Speech Module using pyttsx3 with Windows SAPI5
-Provides synchronous and asynchronous speech capabilities.
-"""
-
 import pyttsx3
 import threading
+import logging
 from typing import Optional
 
+# Get loggers
+main_logger = logging.getLogger('main')
+error_logger = logging.getLogger('errors')
 
 class TextToSpeech:
     """
@@ -25,7 +24,13 @@ class TextToSpeech:
             rate: Speech rate in WPM (default: 180)
             volume: Volume level 0.0-1.0 (default: 1.0)
         """
-        self._engine = pyttsx3.init('sapi5')
+        main_logger.info("Initializing TextToSpeech.")
+        try:
+            self._engine = pyttsx3.init('sapi5')
+        except Exception as e:
+            error_logger.critical("Failed to initialize pyttsx3 engine. SAPI5 might be missing or broken.", exc_info=True)
+            raise RuntimeError("Could not initialize TTS engine.") from e
+
         self._rate = rate
         self._volume = volume
         self._speaking = False
@@ -36,13 +41,26 @@ class TextToSpeech:
         self._engine.setProperty('volume', self._volume)
         
         # Get available voices and set a good default
-        voices = self._engine.getProperty('voices')
-        if voices:
-            # Prefer a male voice for Jarvis-style
-            for voice in voices:
-                if 'david' in voice.name.lower() or 'male' in voice.name.lower():
-                    self._engine.setProperty('voice', voice.id)
-                    break
+        try:
+            voices = self._engine.getProperty('voices')
+            if voices:
+                # Prefer a male voice for Jarvis-style
+                chosen_voice = None
+                for voice in voices:
+                    if 'david' in voice.name.lower() or 'zira' in voice.name.lower():
+                        chosen_voice = voice.id
+                        break
+                if chosen_voice:
+                    self._engine.setProperty('voice', chosen_voice)
+                    main_logger.info(f"Set TTS voice to: {chosen_voice}")
+                else:
+                    main_logger.warning("Could not find a preferred male voice (David/Zira). Using default.")
+            else:
+                main_logger.warning("No TTS voices found for SAPI5 engine.")
+        except Exception as e:
+            error_logger.error("Error while setting TTS voice.", exc_info=True)
+
+        main_logger.info("TextToSpeech initialized successfully.")
     
     @property
     def rate(self) -> int:
@@ -76,14 +94,17 @@ class TextToSpeech:
         if not text:
             return
         
+        main_logger.debug(f"Speaking (sync): '{text}'")
         self._speaking = True
         try:
             self._engine.say(text)
             self._engine.runAndWait()
+        except Exception as e:
+            error_logger.exception("Error during synchronous speech.")
         finally:
             self._speaking = False
     
-    def speak_async(self, text: str) -> threading.Thread:
+    def speak_async(self, text: str) -> Optional[threading.Thread]:
         """
         Speak text asynchronously (non-blocking).
         
@@ -91,7 +112,7 @@ class TextToSpeech:
             text: The text to speak
             
         Returns:
-            The thread handling the speech
+            The thread handling the speech, or None if text is empty.
         """
         if not text:
             return None
@@ -99,16 +120,18 @@ class TextToSpeech:
         def _speak_thread():
             self.speak(text)
         
+        main_logger.debug(f"Speaking (async): '{text}'")
         self._async_thread = threading.Thread(target=_speak_thread, daemon=True)
         self._async_thread.start()
         return self._async_thread
     
     def stop(self) -> None:
         """Stop any ongoing speech."""
+        main_logger.debug("Stopping any ongoing speech.")
         try:
             self._engine.stop()
-        except Exception:
-            pass
+        except Exception as e:
+            error_logger.warning("Exception while stopping TTS engine.", exc_info=True)
         self._speaking = False
     
     def is_speaking(self) -> bool:
@@ -117,8 +140,12 @@ class TextToSpeech:
     
     def list_voices(self) -> list:
         """List all available voices."""
-        voices = self._engine.getProperty('voices')
-        return [(v.id, v.name) for v in voices]
+        try:
+            voices = self._engine.getProperty('voices')
+            return [(v.id, v.name) for v in voices]
+        except Exception as e:
+            error_logger.error("Could not list TTS voices.", exc_info=True)
+            return []
     
     def set_voice(self, voice_id: str) -> bool:
         """
@@ -131,17 +158,9 @@ class TextToSpeech:
             True if successful, False otherwise
         """
         try:
+            main_logger.info(f"Setting TTS voice to: {voice_id}")
             self._engine.setProperty('voice', voice_id)
             return True
-        except Exception:
+        except Exception as e:
+            error_logger.error(f"Failed to set TTS voice ID: {voice_id}", exc_info=True)
             return False
-
-
-# Quick test when run directly
-if __name__ == "__main__":
-    tts = TextToSpeech()
-    print("Available voices:")
-    for vid, name in tts.list_voices():
-        print(f"  - {name}")
-    print()
-    tts.speak("Hello sir, Text to Speech systems are online and operational.")
